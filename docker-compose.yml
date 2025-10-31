@@ -1,0 +1,50 @@
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+      - ./models:/root/.ollama/models  # <- Pre-seeded models
+    command: serve
+
+  chroma:
+    image: chromadb/chroma
+    container_name: chroma
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+    command: --host 0.0.0.0 --port 8000
+
+  app:
+    build: .
+    container_name: askhole
+    ports:
+      - "3000:3000"
+    depends_on:
+      - ollama
+      - chroma
+    volumes:
+      - ./data:/app/data
+      - ./lib:/app/lib
+      - ./app:/app/app
+    environment:
+      - NEXT_PUBLIC_OLLAMA_URL=http://ollama:11434
+      - CHROMA_URL=http://chroma:8000
+    command: >
+      sh -c "
+        echo 'Waiting for Ollama...' &&
+        until curl -s http://ollama:11434/api/tags > /dev/null; do sleep 2; done &&
+        echo 'Ollama ready. Ingesting docs...' &&
+        node lib/ingest.js &&
+        echo 'Askie is ready. Starting UI...' &&
+        npm run start
+      "
+
+volumes:
+  ollama:
+  chroma:
