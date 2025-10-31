@@ -37,11 +37,21 @@ services:
       - CHROMA_URL=http://chroma:8000
     command: >
       sh -c "
+        # 1. Wait for Ollama (using the tags API)
         echo 'Waiting for Ollama...' &&
         until curl -s http://ollama:11434/api/tags > /dev/null; do sleep 2; done &&
-        echo 'Ollama ready. Ingesting docs...' &&
+        echo 'Ollama ready.' &&
+      
+        # 2. Wait for ChromaDB (using the version API)
+        echo 'Waiting for ChromaDB...' &&
+        until curl -s http://chroma:8000/api/v1/version > /dev/null; do sleep 2; done &&
+        echo 'ChromaDB ready. Ingesting docs...' &&
+      
+        # 3. Run Ingestion Script
         node lib/ingest.js &&
         echo 'Askie is ready. Starting UI...' &&
+      
+        # 4. Start Next.js
         npm run start
       "
 
