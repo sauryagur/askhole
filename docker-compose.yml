@@ -6,7 +6,7 @@ services:
       - "11434:11434"
     volumes:
       - ollama:/root/.ollama
-      - ./models:/root/.ollama/models  # <- Pre-seeded models
+      - ./models:/root/.ollama/models # <- Pre-seeded models
     command: serve
 
   chroma:

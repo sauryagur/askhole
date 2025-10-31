@@ -1,18 +1,32 @@
-FROM node:22-alpine AS base
+FROM node:22 AS builder
 
+ENV NODE_ENV production
 WORKDIR /app
 
-# Install dependencies
 COPY package*.json ./
+
 RUN npm ci
 
 # Copy source
 COPY . .
 
-# Install LangChain + Chroma
-RUN npm install langchain @langchain/community chromadb
-
-# Build Next.js
 RUN npm run build
 
+FROM node:22-slim AS production
+
+
+ENV NODE_ENV production
+
 EXPOSE 3000
+
+WORKDIR /app
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+
+COPY --from=builder /app/lib ./lib
+COPY --from=builder /app/data ./data
+COPY --from=builder /app/app ./app
+
+CMD ["npm", "run", "start"]
